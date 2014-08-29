@@ -20,4 +20,14 @@ class FutureListTest extends AssertionsForJUnit {
     assert(1 === head)
   }
 
+  @Test
+  def map(): Unit = {
+    val intList = 1 !:: 2 !:: FutureNil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val stringList = intList.map(_.toString)
+
+    assert(Some("1") === stringList.headOption)
+  }
+
 }

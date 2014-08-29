@@ -1,9 +1,10 @@
 package futurelist
 
 import org.junit.Test
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.junit.AssertionsForJUnit
 
-class FutureListTest extends AssertionsForJUnit {
+class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
   @Test
   def construct(): Unit = {
@@ -38,6 +39,16 @@ class FutureListTest extends AssertionsForJUnit {
     val stringList = intList.map(_.toString)
 
     assert(Some("1") === stringList.headOption)
+  }
+
+  @Test
+  def toList(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureNil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val list = futureList.toList.futureValue
+
+    assert(List(1, 2) === list)
   }
 
 }

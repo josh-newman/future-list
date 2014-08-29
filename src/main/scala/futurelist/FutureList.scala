@@ -13,6 +13,8 @@ sealed trait FutureList[+A] {
 
   def map[B](f: A => B)(implicit ec: ExecutionContext): FutureList[B]
 
+  def toList(implicit ec: ExecutionContext): Future[List[A]]
+
 }
 
 object FutureList {
@@ -39,6 +41,10 @@ case class !::[A](head: A, tail: Future[FutureList[A]]) extends FutureList[A] {
     f(head) !:: tail.map(_.map(f))
   }
 
+  override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
+    tail.flatMap(_.toList).map(head :: _)
+  }
+
 }
 
 case object FutureNil extends FutureList[Nothing] {
@@ -48,5 +54,7 @@ case object FutureNil extends FutureList[Nothing] {
   override val headOption: Option[Nothing] = None
 
   override def map[B](f: (Nothing) => B)(implicit ec: ExecutionContext): FutureList[B] = this
+
+  override def toList(implicit ec: ExecutionContext): Future[List[Nothing]] = Future.successful(Nil)
 
 }

@@ -5,8 +5,6 @@ import org.scalatest.junit.AssertionsForJUnit
 
 class FutureListTest extends AssertionsForJUnit {
 
-  import futurelist._
-
   @Test
   def construct(): Unit = {
     val futureList = 1 !:: 2 !:: FutureNil

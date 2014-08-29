@@ -1,80 +1,136 @@
 package futurelist
 
+import futurelist.FutureList.Node
+
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-sealed trait FutureList[+A] {
+final class FutureList[+A](private val head: Future[Node[A]]) {
 
-  def isEmpty: Boolean
+  import FutureList._
 
-  def headOption: Option[A]
+  def isEmpty(implicit ec: ExecutionContext): Future[Boolean] = head.map(_.isEmpty)
 
-  def !::[B >: A](prepended: B): !::[B] = new !::(prepended, Future.successful(this))
+  def headOption(implicit ec: ExecutionContext): Future[Option[A]] = head.map {
+    case ConsNode(h, _) => Some(h)
+    case NilNode => None
+  }
 
-  def ++[B >: A](appended: FutureList[B])(implicit ec: ExecutionContext): FutureList[B]
+  def tailOption(implicit ec: ExecutionContext): Future[Option[FutureList[A]]] = head.map {
+    case ConsNode(_, tail) => Some(new FutureList(tail))
+    case NilNode => None
+  }
 
-  def map[B](f: A => B)(implicit ec: ExecutionContext): FutureList[B]
+  def !::[AA >: A](prepended: AA): FutureList[AA] = {
+    new FutureList(Future.successful(ConsNode(prepended, head)))
+  }
 
-  def flatMap[B](f: A => FutureList[B])(implicit ec: ExecutionContext): Future[FutureList[B]]
+  def ++[AA >: A](appended: FutureList[AA])(implicit ec: ExecutionContext): FutureList[AA] = {
+    new FutureList(for {
+      h <- head
+      ah <- appended.head
+    } yield {
+      h ++ ah
+    })
+  }
 
-  def toList(implicit ec: ExecutionContext): Future[List[A]]
+  def map[B](f: A => B)(implicit ec: ExecutionContext): FutureList[B] = {
+    new FutureList(head.map(_.map(f)))
+  }
+
+  def flatMap[B](f: A => FutureList[B])(implicit ec: ExecutionContext): FutureList[B] = {
+    new FutureList(head.flatMap(_.futureFlatMap(f.andThen(_.head))))
+  }
+
+  def toList(implicit ec: ExecutionContext): Future[List[A]] = head.flatMap(_.toList)
 
 }
 
 object FutureList {
 
+  val Nil = new FutureList(Future.successful(NilNode))
+
   object Implicits {
 
     implicit class FutureTailOps[+A](tail: Future[FutureList[A]]) {
-      def !::[B >: A] (prepended: B): !::[B] = new !::(prepended, tail)
+      def !::[AA >: A] (prepended: AA)(implicit ec: ExecutionContext): FutureList[AA] = {
+        new FutureList(Future.successful(ConsNode(prepended, tail.flatMap(_.head))))
+      }
     }
 
   }
 
-}
+  private sealed trait Node[+A] {
 
-case class !::[+A](head: A, tail: Future[FutureList[A]]) extends FutureList[A] {
+    def isEmpty: Boolean
 
-  import FutureList.Implicits._
+    def headOption: Option[A]
 
-  override val isEmpty: Boolean = false
+    def !::[AA >: A](prepended: AA): ConsNode[AA] = new ConsNode(prepended, Future.successful(this))
 
-  override val headOption: Option[A] = Some(head)
+    def ++[AA >: A](appended: Node[AA])(implicit ec: ExecutionContext): Node[AA]
 
-  override def ++[B >: A](appended: FutureList[B])(implicit ec: ExecutionContext): !::[B] = {
-    head !:: tail.map(_ ++ appended)
+    def map[B](f: A => B)(implicit ec: ExecutionContext): Node[B]
+
+    def futureFlatMap[B](f: A => Future[Node[B]])(implicit ec: ExecutionContext): Future[Node[B]]
+
+    def toList(implicit ec: ExecutionContext): Future[List[A]]
+
   }
 
-  override def map[B](f: (A) => B)(implicit ec: ExecutionContext): FutureList[B] = {
-    f(head) !:: tail.map(_.map(f))
+  private case class ConsNode[+A](head: A, tail: Future[Node[A]]) extends Node[A] {
+
+    override val isEmpty: Boolean = false
+
+    override val headOption: Option[A] = Some(head)
+
+    override def ++[AA >: A](appended: Node[AA])(implicit ec: ExecutionContext): ConsNode[AA] = {
+      ConsNode(head, tail.map(_ ++ appended))
+    }
+
+    override def map[B](f: (A) => B)(implicit ec: ExecutionContext): Node[B] = {
+      ConsNode(f(head), tail.map(_.map(f)))
+    }
+
+    override def futureFlatMap[B](f: (A) => Future[Node[B]])(implicit ec: ExecutionContext):
+      Future[Node[B]] = {
+
+      for {
+        fh <- f(head)
+        t <- tail
+        ft <- t.futureFlatMap(f)
+      } yield fh ++ ft
+    }
+
+    override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
+      tail.flatMap(_.toList).map(head :: _)
+    }
+
   }
 
-  override def flatMap[B](f: (A) => FutureList[B])(implicit ec: ExecutionContext):
-    Future[FutureList[B]] = {
+  private case object NilNode extends Node[Nothing] {
 
-    tail.flatMap(_.flatMap(f)).map(f(head) ++ _)
+    override val isEmpty: Boolean = true
+
+    override val headOption: Option[Nothing] = None
+
+    override def ++[AA >: Nothing](appended: Node[AA])(implicit ec: ExecutionContext): Node[AA] = {
+      appended
+    }
+
+    override def map[B](f: (Nothing) => B)(implicit ec: ExecutionContext): Node[B] = NilNode
+
+    override def futureFlatMap[B](f: (Nothing) => Future[Node[B]])(implicit ec: ExecutionContext):
+      Future[Node[B]] = {
+
+      Future.successful(NilNode)
+    }
+
+    override def toList(implicit ec: ExecutionContext): Future[List[Nothing]] = {
+      Future.successful(immutable.Nil)
+    }
+
   }
-
-  override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
-    tail.flatMap(_.toList).map(head :: _)
-  }
-
-}
-
-case object FutureNil extends FutureList[Nothing] {
-
-  override val isEmpty: Boolean = true
-
-  override val headOption: Option[Nothing] = None
-
-  override def ++[B >: Nothing](appended: FutureList[B])(implicit ec: ExecutionContext):
-    FutureList[B] = appended
-
-  override def map[B](f: (Nothing) => B)(implicit ec: ExecutionContext): FutureList[B] = FutureNil
-
-  override def flatMap[B](f: (Nothing) => FutureList[B])(implicit ec: ExecutionContext):
-    Future[FutureList[B]] = Future.successful(FutureNil)
-
-  override def toList(implicit ec: ExecutionContext): Future[List[Nothing]] = Future.successful(Nil)
 
 }

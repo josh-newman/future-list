@@ -8,42 +8,33 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
   @Test
   def construct(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureNil
-  }
-
-  @Test
-  def extract(): Unit = {
-    val (head, _) = 1 !:: FutureNil match {
-      case h !:: t => (h, t)
-      case other => fail(s"Should have matched: $other")
-    }
-
-    assert(1 === head)
+    val futureList = 1 !:: 2 !:: FutureList.Nil
   }
 
   @Test
   def constructFutureTail(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureNil
+    val futureList = 1 !:: 2 !:: FutureList.Nil
 
     import FutureList.Implicits._
-    val newList = 10 !:: futureList.tail
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val newList = 10 !:: futureList.tailOption.map(_.get)
 
-    assert(Some(10) === newList.headOption)
+    assert(Some(10) === newList.headOption.futureValue)
   }
 
   @Test
   def map(): Unit = {
-    val intList = 1 !:: 2 !:: FutureNil
+    val intList = 1 !:: 2 !:: FutureList.Nil
 
     import scala.concurrent.ExecutionContext.Implicits.global
     val stringList = intList.map(_.toString)
 
-    assert(Some("1") === stringList.headOption)
+    assert(Some("1") === stringList.headOption.futureValue)
   }
 
   @Test
   def toList(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureNil
+    val futureList = 1 !:: 2 !:: FutureList.Nil
 
     import scala.concurrent.ExecutionContext.Implicits.global
     val list = futureList.toList.futureValue
@@ -53,8 +44,8 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
   @Test
   def appended(): Unit = {
-    val futureList1 = 1 !:: 2 !:: FutureNil
-    val futureList2 = 3 !:: 4 !:: FutureNil
+    val futureList1 = 1 !:: 2 !:: FutureList.Nil
+    val futureList2 = 3 !:: 4 !:: FutureList.Nil
 
     import scala.concurrent.ExecutionContext.Implicits.global
     val combined = futureList1 ++ futureList2
@@ -64,13 +55,13 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
   @Test
   def flatMap(): Unit = {
-    val futureList = 10 !:: 20 !:: FutureNil
-    def f(i: Int): FutureList[Int] = i !:: i + 1 !:: i + 2 !:: FutureNil
+    val futureList = 10 !:: 20 !:: FutureList.Nil
+    def f(i: Int): FutureList[Int] = i !:: i + 1 !:: i + 2 !:: FutureList.Nil
 
     import scala.concurrent.ExecutionContext.Implicits.global
     val result = futureList.flatMap(f)
 
-    assert(List(10, 11, 12, 20, 21, 22) === result.futureValue.toList.futureValue)
+    assert(List(10, 11, 12, 20, 21, 22) === result.toList.futureValue)
   }
 
 }

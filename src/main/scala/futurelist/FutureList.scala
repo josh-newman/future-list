@@ -12,14 +12,13 @@ final class FutureList[+A](private val head: Future[Node[A]]) {
 
   def isEmpty(implicit ec: ExecutionContext): Future[Boolean] = head.map(_.isEmpty)
 
-  def headOption(implicit ec: ExecutionContext): Future[Option[A]] = head.map {
-    case ConsNode(h, _) => Some(h)
-    case NilNode => None
-  }
+  def headOption(implicit ec: ExecutionContext): Future[Option[A]] = head.map(_.headOption)
 
-  def tailOption(implicit ec: ExecutionContext): Future[Option[FutureList[A]]] = head.map {
-    case ConsNode(_, tail) => Some(new FutureList(tail))
-    case NilNode => None
+  def tailOption(implicit ec: ExecutionContext): Future[Option[FutureList[A]]] = for {
+    h <- head
+    tailOption <- h.tailOption
+  } yield {
+    tailOption.map(tail => new FutureList(Future.successful(tail)))
   }
 
   def !::[AA >: A](prepended: AA): FutureList[AA] = {
@@ -67,6 +66,8 @@ object FutureList {
 
     def headOption: Option[A]
 
+    def tailOption(implicit ec: ExecutionContext): Future[Option[Node[A]]]
+
     def !::[AA >: A](prepended: AA): ConsNode[AA] = new ConsNode(prepended, Future.successful(this))
 
     def ++[AA >: A](appended: Node[AA])(implicit ec: ExecutionContext): Node[AA]
@@ -84,6 +85,10 @@ object FutureList {
     override val isEmpty: Boolean = false
 
     override val headOption: Option[A] = Some(head)
+
+    override def tailOption(implicit ec: ExecutionContext): Future[Option[Node[A]]] = {
+      tail.map(Some.apply)
+    }
 
     override def ++[AA >: A](appended: Node[AA])(implicit ec: ExecutionContext): ConsNode[AA] = {
       ConsNode(head, tail.map(_ ++ appended))
@@ -114,6 +119,10 @@ object FutureList {
     override val isEmpty: Boolean = true
 
     override val headOption: Option[Nothing] = None
+
+    override def tailOption(implicit ec: ExecutionContext): Future[Option[Node[Nothing]]] = {
+      Future.successful(None)
+    }
 
     override def ++[AA >: Nothing](appended: Node[AA])(implicit ec: ExecutionContext): Node[AA] = {
       appended

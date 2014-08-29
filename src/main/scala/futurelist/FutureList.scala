@@ -15,7 +15,7 @@ sealed trait FutureList[+A] {
 
   def map[B](f: A => B)(implicit ec: ExecutionContext): FutureList[B]
 
-  def flatMap[B](f: A => FutureList[B])(implicit ec: ExecutionContext): FutureList[B]
+  def flatMap[B](f: A => FutureList[B])(implicit ec: ExecutionContext): Future[FutureList[B]]
 
   def toList(implicit ec: ExecutionContext): Future[List[A]]
 
@@ -49,9 +49,10 @@ case class !::[+A](head: A, tail: Future[FutureList[A]]) extends FutureList[A] {
     f(head) !:: tail.map(_.map(f))
   }
 
-  override def flatMap[B](f: (A) => FutureList[B])(implicit ec: ExecutionContext): FutureList[B] = {
-    val tailLists = tail.map(_.flatMap(f))
-    ???
+  override def flatMap[B](f: (A) => FutureList[B])(implicit ec: ExecutionContext):
+    Future[FutureList[B]] = {
+
+    tail.flatMap(_.flatMap(f)).map(f(head) ++ _)
   }
 
   override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
@@ -72,7 +73,7 @@ case object FutureNil extends FutureList[Nothing] {
   override def map[B](f: (Nothing) => B)(implicit ec: ExecutionContext): FutureList[B] = FutureNil
 
   override def flatMap[B](f: (Nothing) => FutureList[B])(implicit ec: ExecutionContext):
-    FutureList[B] = FutureNil
+    Future[FutureList[B]] = Future.successful(FutureNil)
 
   override def toList(implicit ec: ExecutionContext): Future[List[Nothing]] = Future.successful(Nil)
 

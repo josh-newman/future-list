@@ -62,4 +62,15 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     assert(List(1, 2, 3, 4) === combined.toList.futureValue)
   }
 
+  @Test
+  def flatMap(): Unit = {
+    val futureList = 10 !:: 20 !:: FutureNil
+    def f(i: Int): FutureList[Int] = i !:: i + 1 !:: i + 2 !:: FutureNil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val result = futureList.flatMap(f)
+
+    assert(List(10, 11, 12, 20, 21, 22) === result.futureValue.toList.futureValue)
+  }
+
 }

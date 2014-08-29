@@ -51,4 +51,15 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     assert(List(1, 2) === list)
   }
 
+  @Test
+  def appended(): Unit = {
+    val futureList1 = 1 !:: 2 !:: FutureNil
+    val futureList2 = 3 !:: 4 !:: FutureNil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val combined = futureList1 ++ futureList2
+
+    assert(List(1, 2, 3, 4) === combined.toList.futureValue)
+  }
+
 }

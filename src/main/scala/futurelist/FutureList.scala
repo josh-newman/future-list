@@ -8,9 +8,11 @@ sealed trait FutureList[+A] {
 
   def headOption: Option[A]
 
+  def !::[B >: A] (prepended: B): FutureList[B] = new !::(prepended, Future.successful(this))
+
 }
 
-case class FutureCons[A](head: A, tail: Future[FutureList[A]]) extends FutureList[A] {
+case class !::[A](head: A, tail: Future[FutureList[A]]) extends FutureList[A] {
 
   override val isEmpty: Boolean = false
 

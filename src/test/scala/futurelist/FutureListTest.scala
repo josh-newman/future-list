@@ -21,6 +21,16 @@ class FutureListTest extends AssertionsForJUnit {
   }
 
   @Test
+  def constructFutureTail(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureNil
+
+    import FutureList.Implicits._
+    val newList = 10 !:: futureList.tail
+
+    assert(Some(10) === newList.headOption)
+  }
+
+  @Test
   def map(): Unit = {
     val intList = 1 !:: 2 !:: FutureNil
 

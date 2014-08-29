@@ -9,7 +9,7 @@ sealed trait FutureList[+A] {
 
   def headOption: Option[A]
 
-  def !::[B >: A] (prepended: B): FutureList[B] = new !::(prepended, Future.successful(this))
+  def !::[B >: A] (prepended: B): !::[B] = new !::(prepended, Future.successful(this))
 
   def map[B](f: A => B)(implicit ec: ExecutionContext): FutureList[B]
 

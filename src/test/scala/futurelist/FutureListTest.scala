@@ -7,22 +7,6 @@ import org.scalatest.junit.AssertionsForJUnit
 class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
   @Test
-  def construct(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureList.Nil
-  }
-
-  @Test
-  def constructFutureTail(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureList.Nil
-
-    import FutureList.Implicits._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val newList = 10 !:: futureList.tailOption.map(_.get)
-
-    assert(Some(10) === newList.headOption.futureValue)
-  }
-
-  @Test
   def isEmpty(): Unit = {
     val futureList = 1 !:: 2 !:: FutureList.Nil
 
@@ -55,7 +39,12 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
-  def appended(): Unit = {
+  def construct(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureList.Nil
+  }
+
+  @Test
+  def append(): Unit = {
     val futureList1 = 1 !:: 2 !:: FutureList.Nil
     val futureList2 = 3 !:: 4 !:: FutureList.Nil
 
@@ -126,6 +115,17 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     val list = futureList.toList.futureValue
 
     assert(List(1, 2) === list)
+  }
+
+  @Test
+  def constructFutureTail(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureList.Nil
+
+    import FutureList.Implicits._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val newList = 10 !:: futureList.tailOption.map(_.get)
+
+    assert(Some(10) === newList.headOption.futureValue)
   }
 
 }

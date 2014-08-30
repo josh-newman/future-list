@@ -42,6 +42,11 @@ final class FutureList[+A](private val head: Future[Node[A]]) {
     new FutureList(head.flatMap(_.futureFlatMap(f.andThen(_.head))))
   }
 
+  def take(n: Int)(implicit ec: ExecutionContext): FutureList[A] = {
+    require(n >= 0, s"Invalid n: $n")
+    new FutureList(head.map(_.take(n)))
+  }
+
   def toList(implicit ec: ExecutionContext): Future[List[A]] = head.flatMap(_.toList)
 
 }
@@ -76,6 +81,8 @@ object FutureList {
 
     def futureFlatMap[B](f: A => Future[Node[B]])(implicit ec: ExecutionContext): Future[Node[B]]
 
+    def take(n: Int)(implicit ec: ExecutionContext): Node[A]
+
     def toList(implicit ec: ExecutionContext): Future[List[A]]
 
   }
@@ -108,6 +115,11 @@ object FutureList {
       } yield fh ++ ft
     }
 
+    override def take(n: Int)(implicit ec: ExecutionContext): Node[A] = {
+      if (n == 0) NilNode
+      else ConsNode(head, tail.map(_.take(n - 1)))
+    }
+
     override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
       tail.flatMap(_.toList).map(head :: _)
     }
@@ -135,6 +147,8 @@ object FutureList {
 
       Future.successful(NilNode)
     }
+
+    override def take(n: Int)(implicit ec: ExecutionContext): Node[Nothing] = NilNode
 
     override def toList(implicit ec: ExecutionContext): Future[List[Nothing]] = {
       Future.successful(immutable.Nil)

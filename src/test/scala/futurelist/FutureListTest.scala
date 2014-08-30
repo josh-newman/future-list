@@ -64,4 +64,20 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     assert(List(10, 11, 12, 20, 21, 22) === result.toList.futureValue)
   }
 
+  @Test
+  def take(): Unit = {
+    val futureList = 1 !:: 2 !:: 3 !:: 4 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    assert(Nil === futureList.take(0).toList.futureValue)
+    assert(List(1) === futureList.take(1).toList.futureValue)
+    assert(List(1, 2) === futureList.take(2).toList.futureValue)
+    assert(List(1, 2, 3, 4) === futureList.take(4).toList.futureValue)
+    assert(List(1, 2, 3, 4) === futureList.take(5).toList.futureValue)
+
+    intercept[IllegalArgumentException] {
+      futureList.take(-1)
+    }
+  }
+
 }

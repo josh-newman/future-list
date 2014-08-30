@@ -23,6 +23,15 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
+  def isEmpty(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    assert(true === FutureList.Nil.isEmpty.futureValue)
+    assert(false === futureList.isEmpty.futureValue)
+  }
+
+  @Test
   def appended(): Unit = {
     val futureList1 = 1 !:: 2 !:: FutureList.Nil
     val futureList2 = 3 !:: 4 !:: FutureList.Nil

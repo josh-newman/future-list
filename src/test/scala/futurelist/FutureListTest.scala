@@ -80,4 +80,20 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     }
   }
 
+  @Test
+  def drop(): Unit = {
+    val futureList = 1 !:: 2 !:: 3 !:: 4 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    assert(List(1, 2, 3, 4) === futureList.drop(0).toList.futureValue)
+    assert(List(2, 3, 4) === futureList.drop(1).toList.futureValue)
+    assert(List(3, 4) === futureList.drop(2).toList.futureValue)
+    assert(Nil === futureList.drop(4).toList.futureValue)
+    assert(Nil === futureList.drop(5).toList.futureValue)
+
+    intercept[IllegalArgumentException] {
+      futureList.drop(-1)
+    }
+  }
+
 }

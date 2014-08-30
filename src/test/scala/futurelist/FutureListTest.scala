@@ -23,26 +23,6 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
-  def map(): Unit = {
-    val intList = 1 !:: 2 !:: FutureList.Nil
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val stringList = intList.map(_.toString)
-
-    assert(Some("1") === stringList.headOption.futureValue)
-  }
-
-  @Test
-  def toList(): Unit = {
-    val futureList = 1 !:: 2 !:: FutureList.Nil
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val list = futureList.toList.futureValue
-
-    assert(List(1, 2) === list)
-  }
-
-  @Test
   def appended(): Unit = {
     val futureList1 = 1 !:: 2 !:: FutureList.Nil
     val futureList2 = 3 !:: 4 !:: FutureList.Nil
@@ -51,6 +31,16 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     val combined = futureList1 ++ futureList2
 
     assert(List(1, 2, 3, 4) === combined.toList.futureValue)
+  }
+
+  @Test
+  def map(): Unit = {
+    val intList = 1 !:: 2 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val stringList = intList.map(_.toString)
+
+    assert(Some("1") === stringList.headOption.futureValue)
   }
 
   @Test
@@ -94,6 +84,16 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     intercept[IllegalArgumentException] {
       futureList.drop(-1)
     }
+  }
+
+  @Test
+  def toList(): Unit = {
+    val futureList = 1 !:: 2 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val list = futureList.toList.futureValue
+
+    assert(List(1, 2) === list)
   }
 
 }

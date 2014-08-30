@@ -41,6 +41,20 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
+  def tailOption(): Unit = {
+    val futureList1 = 1 !:: FutureList.Nil
+    val futureList2 = 1 !:: 2 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val tail1 = futureList1.tailOption.futureValue
+    val tail2 = futureList2.tailOption.futureValue
+
+    assert(None === FutureList.Nil.tailOption.futureValue)
+    assert(Some(Nil) === tail1.map(_.toList.futureValue))
+    assert(Some(List(2)) === tail2.map(_.toList.futureValue))
+  }
+
+  @Test
   def appended(): Unit = {
     val futureList1 = 1 !:: 2 !:: FutureList.Nil
     val futureList2 = 3 !:: 4 !:: FutureList.Nil

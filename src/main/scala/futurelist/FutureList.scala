@@ -52,6 +52,14 @@ final class FutureList[+A](private val head: Future[Node[A]]) {
     new FutureList(head.flatMap(_.drop(n)))
   }
 
+  def filter(p: A => Boolean)(implicit ec: ExecutionContext): FutureList[A] = {
+    new FutureList(head.flatMap(_.filter(p)))
+  }
+
+  def filterNot(p: A => Boolean)(implicit ec: ExecutionContext): FutureList[A] = {
+    filter(p.andThen(!_))
+  }
+
   def toList(implicit ec: ExecutionContext): Future[List[A]] = head.flatMap(_.toList)
 
 }
@@ -89,6 +97,8 @@ object FutureList {
     def take(n: Int)(implicit ec: ExecutionContext): Node[A]
 
     def drop(n: Int)(implicit ec: ExecutionContext): Future[Node[A]]
+
+    def filter(p: A => Boolean)(implicit ec: ExecutionContext): Future[Node[A]]
 
     def toList(implicit ec: ExecutionContext): Future[List[A]]
 
@@ -132,6 +142,12 @@ object FutureList {
       else tail.flatMap(_.drop(n - 1))
     }
 
+    override def filter(p: A => Boolean)(implicit ec: ExecutionContext): Future[Node[A]] = {
+      val filteredTail = tail.flatMap(_.filter(p))
+      if (p(head)) Future.successful(ConsNode(head, filteredTail))
+      else filteredTail
+    }
+
     override def toList(implicit ec: ExecutionContext): Future[List[A]] = {
       tail.flatMap(_.toList).map(head :: _)
     }
@@ -163,6 +179,10 @@ object FutureList {
     override def take(n: Int)(implicit ec: ExecutionContext): Node[Nothing] = NilNode
 
     override def drop(n: Int)(implicit ec: ExecutionContext): Future[Node[Nothing]] = {
+      Future.successful(NilNode)
+    }
+
+    override def filter(p: Nothing => Boolean)(implicit ec: ExecutionContext) = {
       Future.successful(NilNode)
     }
 

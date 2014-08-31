@@ -108,6 +108,32 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
+  def filter(): Unit = {
+    val futureList1: FutureList[Int] = FutureList.Nil
+    val futureList2 = 1 !:: 2 !:: 3 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val filtered1 = futureList1.filter(_ > 1).toList.futureValue
+    val filtered2 = futureList2.filter(_ > 1).toList.futureValue
+
+    assert(Nil === filtered1)
+    assert(List(2, 3) === filtered2)
+  }
+
+  @Test
+  def filterNot(): Unit = {
+    val futureList1: FutureList[Int] = FutureList.Nil
+    val futureList2 = 1 !:: 2 !:: 3 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val filtered1 = futureList1.filterNot(_ > 1).toList.futureValue
+    val filtered2 = futureList2.filterNot(_ > 1).toList.futureValue
+
+    assert(Nil === filtered1)
+    assert(List(1) === filtered2)
+  }
+
+  @Test
   def toList(): Unit = {
     val futureList = 1 !:: 2 !:: FutureList.Nil
 

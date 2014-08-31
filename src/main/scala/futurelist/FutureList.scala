@@ -60,8 +60,6 @@ final class FutureList[+A](private val head: Future[Node[A]]) {
     filter(p.andThen(!_))
   }
 
-  def withFilter(p: A => Boolean)(implicit ec: ExecutionContext): FutureList[A] = filter(p)
-
   def toList(implicit ec: ExecutionContext): Future[List[A]] = head.flatMap(_.toList)
 
 }

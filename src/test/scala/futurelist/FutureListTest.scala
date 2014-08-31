@@ -6,6 +6,8 @@ import org.scalatest.junit.AssertionsForJUnit
 
 class FutureListTest extends AssertionsForJUnit with ScalaFutures {
 
+  import FutureListTest._
+
   @Test
   def isEmpty(): Unit = {
     val futureList = 1 !:: 2 !:: FutureList.Nil
@@ -67,10 +69,9 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   @Test
   def flatMap(): Unit = {
     val futureList = 10 !:: 20 !:: FutureList.Nil
-    def f(i: Int): FutureList[Int] = i !:: i + 1 !:: i + 2 !:: FutureList.Nil
 
     import scala.concurrent.ExecutionContext.Implicits.global
-    val result = futureList.flatMap(f)
+    val result = futureList.flatMap(nextFew)
 
     assert(List(10, 11, 12, 20, 21, 22) === result.toList.futureValue)
   }
@@ -147,6 +148,22 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
   }
 
   @Test
+  def forComprehension(): Unit = {
+    val futureList = 10 !:: 21 !:: 30 !:: 41 !:: FutureList.Nil
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val result = for {
+      i <- futureList
+      if i % 2 == 0
+      j <- nextFew(i)
+    } yield {
+      j
+    }
+
+    assert(List(10, 11, 12, 30, 31, 32) === result.toList.futureValue)
+  }
+
+  @Test
   def toList(): Unit = {
     val futureList = 1 !:: 2 !:: FutureList.Nil
 
@@ -167,4 +184,8 @@ class FutureListTest extends AssertionsForJUnit with ScalaFutures {
     assert(Some(10) === newList.headOption.futureValue)
   }
 
+}
+
+object FutureListTest {
+  def nextFew(i: Int): FutureList[Int] = i !:: i + 1 !:: i + 2 !:: FutureList.Nil
 }
